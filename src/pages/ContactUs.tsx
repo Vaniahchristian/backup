@@ -56,7 +56,7 @@ export default function ContactUs() {
       icon: Mail,
       title: 'Email Support',
       description: 'Send us a detailed message',
-      details: ['support@dirtrails.ug', '24-48 hour response', 'Detailed inquiries'],
+      details: ['support@dirtrails.ug', '12-24 hour response', 'Detailed inquiries'],
       action: 'Send Email',
       primary: false
     },
@@ -64,7 +64,7 @@ export default function ContactUs() {
       icon: Phone,
       title: 'Phone Support',
       description: 'Speak directly with our team',
-      details: ['+256 414 123 456', 'Mon-Fri 8AM-6PM EAT', 'Priority support'],
+      details: ['+256 759 918649', 'Mon-Fri 8AM-6PM EAT', 'Priority support'],
       action: 'Call Now',
       primary: false
     }
