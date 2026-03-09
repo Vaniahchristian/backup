@@ -10,7 +10,7 @@ import type { Service } from '../types'
 
 export default function CategoryPage() {
   const { category } = useParams<{ category: string }>()
-  const { services: allServices, loading } = useServices()
+  const { services: allServices, loading } = useServices(undefined, { includeExpired: false })
   const [filteredServices, setFilteredServices] = useState<Service[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('recommended')

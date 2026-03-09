@@ -172,7 +172,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
   const [results, setResults] = useState<SearchResult[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const { services: allServices } = useServices()
+  const { services: allServices } = useServices(undefined, { includeExpired: false })
   const { selectedCurrency, selectedLanguage } = usePreferences()
   // Web search function
   const searchWeb = async (query: string): Promise<SearchResult[]> => {

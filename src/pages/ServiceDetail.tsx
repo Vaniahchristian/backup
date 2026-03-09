@@ -311,6 +311,15 @@ export default function ServiceDetail() {
     }
   }, [service?.images?.length])
 
+  // Keep selectedImage in sync with the carousel index so desktop scrolling updates the main selected image
+  useEffect(() => {
+    if (service?.images && service.images.length > 0) {
+      const idx = Math.min(Math.max(0, currentImageIndex), service.images.length - 1)
+      const img = service.images[idx]
+      if (img && img !== selectedImage) setSelectedImage(img)
+    }
+  }, [currentImageIndex, service?.images])
+
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!service) return
@@ -1596,20 +1605,40 @@ export default function ServiceDetail() {
           <div className="lg:col-span-2">
             {/* Image Gallery - Desktop */}
             <div className="mb-8 hidden md:block">
-              {/* Main Image Display */}
+              {/* Main Image Display (desktop) - horizontally scrollable so users can browse without opening preview */}
               <div className="relative mb-4">
-                <img
-                  loading="lazy"
-                  decoding="async"
-                  src={selectedImage || service.images?.[0] || 'https://images.pexels.com/photos/1320684/pexels-photo-1320684.jpeg'}
-                  alt={service.title}
-                  className="w-full h-[520px] object-cover rounded-lg shadow-lg cursor-pointer"
-                  onClick={() => {
-                    const idx = service.images?.indexOf(selectedImage || service.images?.[0] || '') ?? 0
-                    setLightboxIndex(Math.max(0, idx))
-                    setLightboxOpen(true)
-                  }}
-                />
+                <div
+                  ref={scrollContainerRef}
+                  className="w-full h-[520px] overflow-x-auto snap-x snap-mandatory scroll-smooth hidden md:block"
+                  style={{ scrollBehavior: 'smooth' }}
+                >
+                  <div className="flex w-full h-full">
+                    {service.images && service.images.length > 0 ? (
+                      service.images.map((image, index) => (
+                        <div key={index} className="flex-shrink-0 w-full snap-center">
+                          <img
+                            loading="lazy"
+                            decoding="async"
+                            src={image}
+                            alt={`${service.title} ${index + 1}`}
+                            className="w-full h-full object-cover cursor-pointer rounded-lg shadow-lg"
+                            onClick={() => { setLightboxIndex(index); setLightboxOpen(true) }}
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex-shrink-0 w-full snap-center">
+                        <img
+                          loading="lazy"
+                          decoding="async"
+                          src={selectedImage || service.images?.[0] || 'https://images.pexels.com/photos/1320684/pexels-photo-1320684.jpeg'}
+                          alt={service.title}
+                          className="w-full h-full object-cover rounded-lg shadow-lg"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Desktop Header Overlay – inside image */}
                 <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10">
@@ -1712,7 +1741,7 @@ export default function ServiceDetail() {
 
           {/* Booking Sidebar */}
           <div className="lg:col-span-1">
-            <div ref={bookingRef} className={`bg-white rounded-lg shadow-lg p-6 sticky top-8 ${mobileBookingOpen ? 'ring-4 ring-blue-200' : ''}`}>
+            <div ref={bookingRef} className={`bg-white rounded-lg shadow-lg p-6 sticky top-8 ${mobileBookingOpen ? 'ring-4 ring-blue-200' : ''} md:overflow-visible`}>
               {(service.service_categories?.name?.toLowerCase() === 'activities' || service.service_categories?.name?.toLowerCase() === 'events') ? (
                   <div data-tickets-section>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Tickets</h3>

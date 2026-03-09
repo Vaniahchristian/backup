@@ -429,31 +429,18 @@ export default function VendorVisitorActivity() {
           {stats.visitorSessions && stats.visitorSessions.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-sm font-semibold text-gray-900 mb-4">Recent Visitors</h2>
-              <div className="space-y-2">
-                {stats.visitorSessions.slice(0, 8).map((session: any, idx: number) => (
-                  <div key={idx} className="p-3 rounded-lg bg-gray-50">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {session.location || 'Unknown Location'}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {session.ipAddress && session.ipAddress !== 'Unknown' && (
-                        <span className="text-xs text-gray-500 bg-white px-1.5 py-0.5 rounded">IP: {session.ipAddress}</span>
-                      )}
-                      {session.device_type && (
-                        <span className="text-xs text-gray-500 bg-white px-1.5 py-0.5 rounded">{session.device_type}</span>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-gray-400">
-                      {session.sessionDuration > 0 && <span>{session.sessionDuration} min</span>}
-                      {session.pagesVisited && <span>{session.pagesVisited} pages</span>}
-                      {session.visit_count && <span>{session.visit_count} visits</span>}
-                      {session.daysSinceFirstVisit !== undefined && (
-                        <span>{session.daysSinceFirstVisit === 0 ? 'Today' : `${session.daysSinceFirstVisit}d ago`}</span>
-                      )}
-                    </div>
+                  <div className="space-y-2">
+                    {stats.visitorSessions.slice(0, 8).map((session: any, idx: number) => (
+                      <div key={idx} className="p-3 rounded-lg bg-gray-50">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {session.location || 'Unknown'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {session.visitedAt ? new Date(session.visitedAt).toLocaleString() : (session.last_visit_at ? new Date(session.last_visit_at).toLocaleString() : '')}
+                        </p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
             </div>
           )}
 

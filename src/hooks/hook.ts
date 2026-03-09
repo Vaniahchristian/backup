@@ -164,7 +164,7 @@ export function useAdminTransactions() {
   return { transactions, loading, error, refetch: fetchTransactions };
 }
 
-export function useServices(vendorId?: string, options?: { skipInitialFetch?: boolean }) {
+export function useServices(vendorId?: string, options?: { skipInitialFetch?: boolean; includeExpired?: boolean }) {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -202,7 +202,21 @@ export function useServices(vendorId?: string, options?: { skipInitialFetch?: bo
         return service as Service;
       });
 
-      setServices(normalized);
+      // Optionally filter out services that have auto-deactivated (events older than 24h)
+      if (options && options.includeExpired === false) {
+        const filtered = normalized.filter((service: Service) => {
+          const eventDateTimeStr = (service as any).event_datetime || (service as any).event_date;
+          if (!eventDateTimeStr) return true;
+          const eventDate = new Date(eventDateTimeStr);
+          if (isNaN(eventDate.getTime())) return true;
+          const now = Date.now();
+          const expired = now > eventDate.getTime() + 24 * 60 * 60 * 1000;
+          return !expired;
+        });
+        setServices(filtered);
+      } else {
+        setServices(normalized);
+      }
       // normalized data set into hook state
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');

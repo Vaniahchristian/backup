@@ -4877,7 +4877,8 @@ async function enhanceVisitorSessions(sessions: any[], viewLogs: any[]): Promise
         viewCount: sessionViews.length,
         daysSinceFirstVisit,
         ipAddress: session.ip_address || 'Unknown',
-        location: session.country ? `${session.city || ''}, ${session.country}`.trim() : 'Unknown Location'
+        location: `${(session.city && session.city !== '') ? session.city : 'Unknown'}, ${(session.country && session.country !== '') ? session.country : 'Unknown'}`,
+        visitedAt: (session.last_visit_at || session.first_visit_at || session.created_at) ? new Date(session.last_visit_at || session.first_visit_at || session.created_at).toISOString() : null
       }
     })
 

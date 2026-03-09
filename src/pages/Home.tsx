@@ -298,7 +298,7 @@ export default function Home() {
   const navigate = useNavigate()
 
   // Use the reactive useServices hook
-  const { services: allServices, loading: servicesLoading } = useServices()
+  const { services: allServices, loading: servicesLoading } = useServices(undefined, { includeExpired: false })
 
   const { t } = usePreferences()
 

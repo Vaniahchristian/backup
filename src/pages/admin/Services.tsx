@@ -8,7 +8,7 @@ import { formatCurrencyWithConversion } from '../../lib/utils';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import { ToggleSwitch } from '../../components/ToggleSwitch';
 import { useState, useEffect } from 'react';
-import { getAllVendors } from '../../lib/database';
+import { getAllVendors, createTicketType, updateTicketType, deleteTicketType } from '../../lib/database';
 import type { Service } from '../../types';
 
 function formatServicePrice(service: Service, selectedCurrency: string, selectedLanguage: string) {
@@ -250,6 +250,34 @@ export function Services() {
     setSaveMessage(null); // Clear any previous messages
     
     try {
+      // Persist ticket type changes (create/update/delete) separately
+      try {
+        const original = (editingService as any).ticket_types || [];
+        const updated = (updatedServiceData as any).ticket_types;
+        if (Array.isArray(updated)) {
+          const removed = original.filter((o: any) => o.id && !updated.some((u: any) => u.id === o.id));
+          for (const r of removed) {
+            if (r.id) await deleteTicketType(r.id);
+          }
+          for (const t of updated) {
+            const payload: any = {
+              title: t.title,
+              description: t.description,
+              price: t.price,
+              quantity: t.quantity,
+              metadata: t.metadata,
+              sale_start: t.sale_start,
+              sale_end: t.sale_end
+            };
+            if (t.id) await updateTicketType(t.id, payload);
+            else await createTicketType(editingService.id, payload);
+          }
+          delete (updatedServiceData as any).ticket_types;
+        }
+      } catch (ticketErr) {
+        console.error('Failed to persist ticket types:', ticketErr);
+      }
+
       await updateService(editingService.id, updatedServiceData);
       
       // Show success message
@@ -430,9 +458,9 @@ export function Services() {
                       <StatusBadge status={service.status} variant="small" />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <StatusBadge 
-                        status={service.status === 'approved' ? 'available' : service.status === 'inactive' ? 'unavailable' : 'unavailable'} 
-                        variant="small" 
+                      <StatusBadge
+                        status={service.status === 'approved' && !isPast24HoursAfterEvent(service) ? 'available' : 'unavailable'}
+                        variant="small"
                       />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -639,9 +667,9 @@ export function Services() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge 
-                          status={request.service?.status === 'approved' ? 'available' : request.service?.status === 'inactive' ? 'unavailable' : 'unavailable'} 
-                          variant="small" 
+                        <StatusBadge
+                          status={request.service && request.service.status === 'approved' && !isPast24HoursAfterEvent(request.service) ? 'available' : 'unavailable'}
+                          variant="small"
                         />
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">

@@ -17,12 +17,21 @@ export function EditServiceModal({ service, isOpen, onClose, onSave, isLoading, 
     pickup_locations: '',
     dropoff_locations: '',
   });
+  // track whether ticket sale dates were manually edited per-ticket
+  const [ticketManualFlags, setTicketManualFlags] = useState<Array<{saleStartManual?: boolean; saleEndManual?: boolean}>>([]);
 
   const isTransportService = service?.category_id === 'cat_transport';
 
   useEffect(() => {
     if (service) {
-      setFormData({
+      // initialize manual flags for tickets
+      const initialTickets = (service as any).ticket_types || [];
+      setTicketManualFlags(initialTickets.map((tt: any) => ({
+        saleStartManual: !!(tt && tt.sale_start),
+        saleEndManual: !!(tt && tt.sale_end),
+      })));
+
+      setFormData(({
         title: service.title,
         description: service.description,
         price: service.price,
@@ -31,6 +40,20 @@ export function EditServiceModal({ service, isOpen, onClose, onSave, isLoading, 
         duration_hours: service.duration_hours,
         max_capacity: service.max_capacity,
         amenities: service.amenities || [],
+        // Common event/activity fields
+        event_type: (service as any).event_type || '',
+        event_date: (service as any).event_date || undefined,
+        event_datetime: (service as any).event_datetime || undefined,
+        event_location: (service as any).event_location || (service as any).location || '',
+        event_lat: (service as any).event_lat || (service as any).event_lat || undefined,
+        event_lon: (service as any).event_lon || (service as any).event_lon || undefined,
+        max_participants: (service as any).max_participants || undefined,
+        minimum_age: (service as any).minimum_age || undefined,
+        registration_deadline: (service as any).registration_deadline || undefined,
+        internal_ticketing: (service as any).internal_ticketing || ((service as any).ticket_types?.some((tt: any) => !!(tt.sale_start || tt.sale_end || tt.quantity)) ?? false),
+        ticket_types: (service as any).ticket_types || [],
+        scan_enabled: (service as any).scan_enabled || false,
+        status: service.status || 'draft',
         // Transport-specific fields
         vehicle_type: service.vehicle_type || '',
         vehicle_capacity: service.vehicle_capacity || undefined,
@@ -53,7 +76,7 @@ export function EditServiceModal({ service, isOpen, onClose, onSave, isLoading, 
         four_wheel_drive: service.four_wheel_drive || false,
         automatic_transmission: service.automatic_transmission || false,
         transport_terms: service.transport_terms || '',
-      });
+      }) as unknown as Partial<Service>);
     }
   }, [service]);
 
@@ -67,6 +90,76 @@ export function EditServiceModal({ service, isOpen, onClose, onSave, isLoading, 
   };
 
   const handleInputChange = (field: keyof Service, value: any) => {
+    // If event_datetime changes, shift ticket sale datetimes for tickets that
+    // were not manually edited.
+    if (field === 'event_datetime') {
+      const prevEvent = formData.event_datetime;
+      const newEvent = value;
+      setFormData(prev => {
+        let next = { ...prev, [field]: value } as Partial<Service>;
+        try {
+          if (prevEvent && newEvent) {
+            const delta = new Date(newEvent).getTime() - new Date(prevEvent).getTime();
+            const tickets = (prev.ticket_types || []) as any[];
+            const shifted = tickets.map((tt, idx) => {
+              const flags = ticketManualFlags[idx] || {};
+              const out = { ...tt };
+              if (out.sale_start) {
+                if (!flags.saleStartManual) {
+                  const t = new Date(out.sale_start).getTime();
+                  out.sale_start = new Date(t + delta).toISOString();
+                }
+              } else {
+                if (!flags.saleStartManual) {
+                  out.sale_start = new Date(newEvent).toISOString();
+                }
+              }
+              if (out.sale_end) {
+                if (!flags.saleEndManual) {
+                  const t2 = new Date(out.sale_end).getTime();
+                  out.sale_end = new Date(t2 + delta).toISOString();
+                }
+              } else {
+                if (!flags.saleEndManual) {
+                  out.sale_end = new Date(newEvent).toISOString();
+                }
+              }
+              return out;
+            });
+            next.ticket_types = shifted;
+          } else if (!prevEvent && newEvent) {
+            // No previous event — initialize missing sale dates to event
+            const tickets = (prev.ticket_types || []) as any[];
+            next.ticket_types = tickets.map((tt) => ({
+              ...tt,
+              sale_start: tt.sale_start || new Date(newEvent).toISOString(),
+              sale_end: tt.sale_end || new Date(newEvent).toISOString(),
+            }));
+          }
+        } catch (err) {
+          // ignore date parsing errors
+        }
+        return next;
+      });
+      return;
+    }
+
+    // When internal ticketing is enabled, ensure tickets without sale dates get event defaults
+    if (field === 'internal_ticketing' && value === true) {
+      setFormData(prev => {
+        const eventDt = prev.event_datetime || prev.event_date;
+        if (!eventDt) return { ...prev, internal_ticketing: true };
+        const tickets = (prev.ticket_types || []) as any[];
+        const nextTickets = tickets.map((tt) => ({
+          ...tt,
+          sale_start: tt.sale_start || eventDt,
+          sale_end: tt.sale_end || eventDt,
+        }));
+        return { ...prev, internal_ticketing: true, ticket_types: nextTickets };
+      });
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -95,6 +188,45 @@ export function EditServiceModal({ service, isOpen, onClose, onSave, isLoading, 
       ...prev,
       [field]: (prev[field] || []).filter((_, i) => i !== index)
     }));
+  };
+
+  // Ticket type helpers for structured editor
+  const updateTicketType = (index: number, changes: Partial<any>) => {
+    setFormData(prev => {
+      const list = (prev.ticket_types || []) as any[];
+      const next = list.map((t, i) => i === index ? { ...t, ...changes } : t);
+      return { ...prev, ticket_types: next };
+    });
+  };
+
+  // when admin manually edits ticket sale fields, mark them as manual
+  const markTicketManual = (index: number, which: 'saleStart' | 'saleEnd') => {
+    setTicketManualFlags(prev => {
+      const copy = [...(prev || [])];
+      copy[index] = { ...(copy[index] || {}), ...(which === 'saleStart' ? { saleStartManual: true } : { saleEndManual: true }) };
+      return copy;
+    });
+  };
+
+  const addTicketType = () => {
+    setFormData(prev => {
+      const eventDt = prev.event_datetime || prev.event_date;
+      const newTicket: any = { title: '', price: 0, quantity: undefined };
+      if (eventDt) {
+        newTicket.sale_start = eventDt;
+        newTicket.sale_end = eventDt;
+      }
+      return {
+        ...prev,
+        ticket_types: [ ...(prev.ticket_types || []), newTicket ]
+      };
+    });
+    setTicketManualFlags(prev => ([ ...(prev || []), { saleStartManual: false, saleEndManual: false } ]));
+  };
+
+  const removeTicketType = (index: number) => {
+    setFormData(prev => ({ ...prev, ticket_types: (prev.ticket_types || []).filter((_, i) => i !== index) }));
+    setTicketManualFlags(prev => (prev || []).filter((_, i) => i !== index));
   };
 
   if (!isOpen || !service) return null;
@@ -143,6 +275,41 @@ export function EditServiceModal({ service, isOpen, onClose, onSave, isLoading, 
                 </div>
               </div>
             )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+              <div>
+                <label htmlFor="max_participants" className="block text-sm font-medium text-gray-700">Maximum Participants</label>
+                <input
+                  type="number"
+                  id="max_participants"
+                  value={formData.max_participants || ''}
+                  onChange={(e) => handleInputChange('max_participants' as keyof Service, e.target.value ? Number(e.target.value) : undefined)}
+                  placeholder="e.g., 50"
+                  className="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="minimum_age" className="block text-sm font-medium text-gray-700">Minimum Age</label>
+                <input
+                  type="number"
+                  id="minimum_age"
+                  value={formData.minimum_age || ''}
+                  onChange={(e) => handleInputChange('minimum_age' as keyof Service, e.target.value ? Number(e.target.value) : undefined)}
+                  placeholder="e.g., 18"
+                  className="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="registration_deadline" className="block text-sm font-medium text-gray-700">Registration Deadline</label>
+                <input
+                  type="datetime-local"
+                  id="registration_deadline"
+                  value={formData.registration_deadline ? new Date(formData.registration_deadline).toISOString().slice(0,16) : ''}
+                  onChange={(e) => handleInputChange('registration_deadline' as keyof Service, e.target.value)}
+                  className="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -207,6 +374,126 @@ export function EditServiceModal({ service, isOpen, onClose, onSave, isLoading, 
                   </select>
                 </div>
               </div>
+
+              {/* Event / Activity-specific fields */}
+              {(service?.category_id === 'cat_activities' || (formData.ticket_types && formData.ticket_types.length > 0)) && (
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Event Details</h4>
+
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label htmlFor="event_type" className="block text-sm font-medium text-gray-700">Event Type</label>
+                          <select id="event_type" value={(formData.event_type as any) || ''} onChange={(e) => handleInputChange('event_type' as keyof Service, e.target.value)} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            <option value="">Select event type</option>
+                            <option value="adventure_activity">Adventure Activity</option>
+                            <option value="cultural_experience">Cultural Experience</option>
+                            <option value="nature_tour">Nature Tour</option>
+                            <option value="sports_event">Sports Event</option>
+                            <option value="festival">Festival</option>
+                            <option value="workshop">Workshop</option>
+                            <option value="concert">Concert/Performance</option>
+                            <option value="exhibition">Exhibition</option>
+                            <option value="other">Other Event</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label htmlFor="event_datetime" className="block text-sm font-medium text-gray-700">Event Date & Time</label>
+                          <input
+                            type="datetime-local"
+                            id="event_datetime"
+                            value={formData.event_datetime ? new Date(formData.event_datetime).toISOString().slice(0,16) : ''}
+                            onChange={(e) => handleInputChange('event_datetime' as keyof Service, e.target.value)}
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          />
+                        </div>
+                  </div>
+                      <div className="mb-4">
+                        <label htmlFor="event_location" className="block text-sm font-medium text-gray-700">Event Location</label>
+                        <input
+                          id="event_location"
+                          type="text"
+                          value={(formData.event_location as any) || ''}
+                          onChange={(e) => handleInputChange('event_location' as keyof Service, e.target.value)}
+                          placeholder="Venue or meeting point"
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        />
+                      </div>
+
+                      <div className="mb-4">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={!!(formData.internal_ticketing)}
+                            onChange={(e) => handleInputChange('internal_ticketing' as keyof Service, e.target.checked)}
+                          />
+                          <span className="text-sm text-gray-700">Enable internal ticketing</span>
+                        </label>
+                      </div>
+
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">Ticket Types</label>
+                        <div className="mt-2 space-y-3">
+                          {((formData.ticket_types || []) as any[]).map((tt, idx) => (
+                            <div key={idx} className="p-3 border border-slate-200 rounded-lg bg-white">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-2">
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-600 mb-1">Title</label>
+                                  <input className="w-full border border-slate-200 rounded px-3 py-2" value={tt.title || tt.name || ''} onChange={(e) => updateTicketType(idx, { title: e.target.value })} />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-600 mb-1">Price (UGX)</label>
+                                  <input className="w-full border border-slate-200 rounded px-3 py-2" type="number" value={tt.price ?? ''} onChange={(e) => updateTicketType(idx, { price: e.target.value === '' ? 0 : Number(e.target.value) })} />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-600 mb-1">Quantity</label>
+                                  <input className="w-full border border-slate-200 rounded px-3 py-2" type="number" value={tt.quantity ?? ''} onChange={(e) => updateTicketType(idx, { quantity: e.target.value === '' ? undefined : Number(e.target.value) })} />
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-600 mb-1">Sale starts</label>
+                                  <input type="datetime-local" className="w-full border border-slate-200 rounded px-3 py-2" value={tt.sale_start ? new Date(tt.sale_start).toISOString().slice(0,16) : ''} onChange={(e) => { updateTicketType(idx, { sale_start: e.target.value || undefined }); markTicketManual(idx, 'saleStart'); }} />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-600 mb-1">Sale ends</label>
+                                  <input type="datetime-local" className="w-full border border-slate-200 rounded px-3 py-2" value={tt.sale_end ? new Date(tt.sale_end).toISOString().slice(0,16) : ''} onChange={(e) => { updateTicketType(idx, { sale_end: e.target.value || undefined }); markTicketManual(idx, 'saleEnd'); }} />
+                                </div>
+                              </div>
+
+                              <div className="flex justify-between items-center">
+                                <div className="text-xs text-slate-500">{tt.description || ''}</div>
+                                <div className="flex items-center gap-2">
+                                  <button type="button" onClick={() => removeTicketType(idx)} className="px-3 py-1 text-sm bg-red-50 text-red-700 rounded-lg">Remove</button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+
+                          <div>
+                            <button type="button" onClick={addTicketType} className="px-3 py-2 bg-blue-600 text-white rounded-md">Add Ticket Type</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mb-4 flex items-center gap-4">
+                        <label className="flex items-center gap-2">
+                          <input type="checkbox" checked={!!formData.scan_enabled} onChange={(e) => handleInputChange('scan_enabled' as keyof Service, e.target.checked)} />
+                          <span className="text-sm text-gray-700">Scan link enabled</span>
+                        </label>
+                        <div className="ml-auto">
+                          <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
+                          <select id="status" value={(formData.status as any) || 'draft'} onChange={(e) => handleInputChange('status' as keyof Service, e.target.value)} className="mt-1 border-gray-300 rounded-md">
+                            <option value="draft">Draft</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="rejected">Rejected</option>
+                          </select>
+                        </div>
+                      </div>
+                </div>
+              )}
 
               <div>
                 <label htmlFor="location" className="block text-sm font-medium text-gray-700">

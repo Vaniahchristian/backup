@@ -1,5 +1,6 @@
 import { CheckIcon, XMarkIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useServices, useServiceDeleteRequests } from '../../hooks/hook';
+import { ToggleSwitch } from '../../components/ToggleSwitch';
 import { StatusBadge } from '../../components/StatusBadge';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { EditServiceModal } from '../../components/EditServiceModal';
@@ -8,7 +9,7 @@ import { formatCurrencyWithConversion } from '../../lib/utils';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useState, useEffect } from 'react';
-import { getAllVendors, getActivationRequests, updateActivationRequestStatus, createScanSession } from '../../lib/database';
+import { getAllVendors, getActivationRequests, updateActivationRequestStatus, createScanSession, createTicketType, updateTicketType, deleteTicketType } from '../../lib/database';
 import type { Service } from '../../types';
 
 function formatServicePrice(service: Service, selectedCurrency: string, selectedLanguage: string) {
@@ -50,6 +51,15 @@ export function ActivitiesServices() {
   const [activationUpdatingId, setActivationUpdatingId] = useState<string | null>(null);
   const [scanSessionPrompt, setScanSessionPrompt] = useState<{ service: Service; show: boolean } | null>(null);
   const [sessionDuration, setSessionDuration] = useState<number>(4);
+
+  function isPast24HoursAfterEvent(service: Service): boolean {
+    const eventDateTimeStr = (service as any).event_datetime || (service as any).event_date;
+    if (!eventDateTimeStr) return false;
+    const eventDate = new Date(eventDateTimeStr);
+    if (isNaN(eventDate.getTime())) return false;
+    const now = new Date();
+    return now.getTime() > eventDate.getTime() + 24 * 60 * 60 * 1000;
+  }
 
   console.log('Admin deleteRequests:', deleteRequests);
   console.log('Admin deleteRequests length:', deleteRequests?.length || 0);
@@ -109,6 +119,12 @@ export function ActivitiesServices() {
       setActivationUpdatingId(null);
     }
   };
+
+  // Prevent TS6133 unused variable/function errors in builds when these are not referenced in UI
+  void activationRequests;
+  void activationUpdatingId;
+  void approveActivationRequest;
+  void rejectActivationRequest;
 
   const handleCreateScanSession = async () => {
     if (!scanSessionPrompt?.service) return;
@@ -319,6 +335,44 @@ export function ActivitiesServices() {
     setSaveMessage(null); // Clear any previous messages
 
     try {
+      // If ticket types were edited in the modal, persist those to the ticket_types table
+      try {
+        const original = (editingService as any).ticket_types || [];
+        const updated = (updatedServiceData as any).ticket_types;
+        if (Array.isArray(updated)) {
+          // delete removed ticket types
+          const removed = original.filter((o: any) => o.id && !updated.some((u: any) => u.id === o.id));
+          for (const r of removed) {
+            if (r.id) {
+              await deleteTicketType(r.id);
+            }
+          }
+
+          // create or update incoming ticket types
+          for (const t of updated) {
+            const payload: any = {
+              title: t.title,
+              description: t.description,
+              price: t.price,
+              quantity: t.quantity,
+              metadata: t.metadata,
+              sale_start: t.sale_start,
+              sale_end: t.sale_end
+            };
+            if (t.id) {
+              await updateTicketType(t.id, payload);
+            } else {
+              await createTicketType(editingService.id, payload);
+            }
+          }
+          // remove ticket_types from service update payload so we don't try to write it to services table
+          delete (updatedServiceData as any).ticket_types;
+        }
+      } catch (ticketErr) {
+        console.error('Failed to persist ticket types:', ticketErr);
+        // continue to attempt service update even if ticket update failed
+      }
+
       await updateService(editingService.id, updatedServiceData);
 
       // Show success message
@@ -406,6 +460,9 @@ export function ActivitiesServices() {
                     Availability
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Toggle
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Event Link
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -440,41 +497,37 @@ export function ActivitiesServices() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge
-                        status={service.status === 'approved' ? 'available' : 'unavailable'}
+                        status={service.status === 'approved' && !isPast24HoursAfterEvent(service) ? 'available' : 'unavailable'}
                         variant="small"
                       />
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {(service.status === 'approved' || service.status === 'inactive') && (
+                        <ToggleSwitch
+                          checked={service.status === 'approved' && !isPast24HoursAfterEvent(service)}
+                          onChange={async () => {
+                            setUpdatingStatus(service.id);
+                            try {
+                              await updateServiceStatus(service.id, service.status === 'approved' ? 'inactive' : 'approved');
+                            } catch (err) {
+                              console.error('Failed to toggle service availability:', err);
+                              alert('Failed to update service availability.');
+                            } finally {
+                              setUpdatingStatus(null);
+                            }
+                          }}
+                          disabled={updatingStatus === service.id || isPast24HoursAfterEvent(service)}
+                          size="sm"
+                          label={isPast24HoursAfterEvent(service) ? 'Auto-deactivated after 24h' : ''}
+                        />
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {/* Show event scan link status for activities */}
+                      {/* Show event scan link status for activities (match admin/Services) */}
                       {service.scan_enabled ? (
-                        <a href={`${window.location.origin}/scan/${service.id}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-medium">
-                          ✓ View scan link
-                        </a>
+                        <a href={`${window.location.origin}/scan/${service.id}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">View scan link</a>
                       ) : (
-                        <div className="space-y-2">
-                          <div className="text-sm text-gray-400 mb-2">Scan link inactive</div>
-                          {/* Check if there's a pending activation request for this service */}
-                          {activationRequests.find(r => r.service_id === service.id) ? (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => approveActivationRequest(activationRequests.find(r => r.service_id === service.id)?.id || '')}
-                                disabled={activationUpdatingId === activationRequests.find(r => r.service_id === service.id)?.id}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-                              >
-                                {activationUpdatingId === activationRequests.find(r => r.service_id === service.id)?.id ? 'Approving...' : 'Approve'}
-                              </button>
-                              <button
-                                onClick={() => rejectActivationRequest(activationRequests.find(r => r.service_id === service.id)?.id || '')}
-                                disabled={activationUpdatingId === activationRequests.find(r => r.service_id === service.id)?.id}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
-                              >
-                                {activationUpdatingId === activationRequests.find(r => r.service_id === service.id)?.id ? 'Rejecting...' : 'Reject'}
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-400">No pending request</span>
-                          )}
-                        </div>
+                        <span className="text-sm text-gray-500">Scan link inactive</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -657,10 +710,10 @@ export function ActivitiesServices() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge
-                          status={request.service?.status === 'approved' ? 'available' : 'unavailable'}
-                          variant="small"
-                        />
+                          <StatusBadge
+                            status={request.service && request.service.status === 'approved' && !isPast24HoursAfterEvent(request.service) ? 'available' : 'unavailable'}
+                            variant="small"
+                          />
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
                         {request.reason}

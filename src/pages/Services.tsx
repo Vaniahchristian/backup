@@ -66,7 +66,7 @@ export default function Services() {
   const [selectedService, setSelectedService] = useState<Service | null>(null)
 
   // Use the reactive useServices hook instead of local state
-  const { services: allServices, loading: servicesLoading } = useServices()
+  const { services: allServices, loading: servicesLoading } = useServices(undefined, { includeExpired: false })
   // Use centralized formatting helper from lib/utils
 
   // Helper function to render icons (handles both string and component icons)
