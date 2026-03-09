@@ -204,7 +204,7 @@ export default function PublicLayout() {
 
                     {/* User Dropdown Menu */}
                     {showUserDropdown && (
-                      <div className="fixed right-4 top-28 min-w-48 max-w-64 bg-white rounded-md shadow-lg border border-gray-200 z-[200]">
+                      <div className="fixed right-4 top-20 min-w-48 max-w-64 bg-white rounded-md shadow-lg border border-gray-200 z-[200]">
                         <div className="py-1">
                           <div className="px-4 py-2 border-b border-gray-200">
                             <p className="text-sm font-medium text-gray-900">{t('my_account')}</p>
@@ -296,7 +296,7 @@ export default function PublicLayout() {
 
                     {/* Guest Dropdown Menu */}
                     {showGuestDropdown && (
-                      <div className="fixed right-4 top-28 min-w-56 max-w-64 bg-white rounded-md shadow-lg border border-gray-200 z-[200] max-h-96 overflow-y-auto">
+                      <div className="fixed right-4 top-20 min-w-56 max-w-64 bg-white rounded-md shadow-lg border border-gray-200 z-[200] max-h-96 overflow-y-auto">
                         <div className="py-2">
                           {/* Account Section */}
                           <div className="px-3 py-1.5">
@@ -420,7 +420,7 @@ export default function PublicLayout() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-1">For Businesses</p>
-              <p className="text-lg font-bold text-white">Reach thousands of travellers in Uganda</p>
+              <p className="text-lg font-bold text-white">Reach thousands of travellers around the world.</p>
             </div>
             <Link
               to="/vendor-login"
@@ -438,14 +438,9 @@ export default function PublicLayout() {
             <div className="md:col-span-4">
               <p className="text-2xl font-bold tracking-tight mb-1">DirtTrails<span className="text-emerald-500">.</span></p>
               <p className="text-gray-400 text-sm leading-relaxed mt-3 max-w-xs">
-                Discover Uganda's hidden gems and create unforgettable experiences with trusted local service providers.
+                Discover hidden gems worldwide and create unforgettable experiences with trusted local hosts.
               </p>
-              <div className="mt-6 flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-900/50 text-emerald-400 text-xs font-medium border border-emerald-800">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  Active in Uganda
-                </span>
-              </div>
+              
             </div>
 
             {/* Links */}
