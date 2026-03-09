@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft, CreditCard, CheckCircle, XCircle } from 'lucide-react'
+import { jsPDF } from 'jspdf'
 import { useAuth } from '../contexts/AuthContext'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { createBooking as createVendorBooking } from '../store/vendorStore'
@@ -320,6 +321,7 @@ export default function TransportBooking({ service }: TransportBookingProps) {
   const [currentStep, setCurrentStep] = useState(1)
   // Removed unused cartSaved state
   const [bookingConfirmed, setBookingConfirmed] = useState(false)
+  const [bookingResult, setBookingResult] = useState<any | null>(null)
   const [bookingError, setBookingError] = useState<string | null>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [selectedImage, setSelectedImage] = useState('')
@@ -537,8 +539,10 @@ export default function TransportBooking({ service }: TransportBookingProps) {
             return false
           }
         }
-        if (bookingData.passengers < 1 || bookingData.passengers > (service.vehicle_capacity || service.max_capacity)) {
-          alert(`Number of passengers must be between 1 and ${service.vehicle_capacity || service.max_capacity}.`)
+        // Only enforce an upper bound when the service specifies a capacity
+        const maxCapacity = (service.vehicle_capacity ?? service.max_capacity) ?? null
+        if (bookingData.passengers < 1 || (maxCapacity !== null && bookingData.passengers > maxCapacity)) {
+          alert(`Number of passengers must be between 1 and ${maxCapacity !== null ? maxCapacity : 'unlimited'}.`)
           return false
         }
         // Validate contact details
@@ -622,6 +626,7 @@ export default function TransportBooking({ service }: TransportBookingProps) {
         try {
           const result = await createDatabaseBooking(bookingDataToInsert)
           if (result && result.id) {
+            setBookingResult(result)
             setBookingConfirmed(true)
             setCurrentStep(currentStep + 1)
           } else {
@@ -680,6 +685,129 @@ export default function TransportBooking({ service }: TransportBookingProps) {
     
     // Round up to the next day if more than 24 hours
     return Math.ceil(diffHours / 24) || 1
+  }
+
+  // Generate and download a simple HTML receipt for the booking
+  const downloadReceipt = (result: any) => {
+    try {
+      const receiptHtml = `<!doctype html><html><head><meta charset="utf-8"><title>Receipt ${result.id}</title>
+        <style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:20px;color:#111}h1{font-size:18px}table{width:100%;border-collapse:collapse}td{padding:8px;border-bottom:1px solid #eee}</style>
+        </head><body>
+        <h1>Booking Receipt</h1>
+        <p><strong>Reference:</strong> ${result.id}</p>
+        <h2>Service</h2>
+        <table>
+          <tr><td>Title</td><td>${service.title}</td></tr>
+          <tr><td>Provider</td><td>${service.vendors?.business_name || 'N/A'}</td></tr>
+          <tr><td>Location</td><td>${service.location}</td></tr>
+        </table>
+        <h2>Trip</h2>
+        <table>
+          <tr><td>Pick-up</td><td>${bookingData.startDate || ''} ${bookingData.startTime ? 'at ' + bookingData.startTime : ''}</td></tr>
+          <tr><td>Drop-off</td><td>${bookingData.endDate || ''} ${bookingData.endTime ? 'at ' + bookingData.endTime : ''}</td></tr>
+          <tr><td>Passengers</td><td>${bookingData.passengers}</td></tr>
+        </table>
+        <h2>Payment</h2>
+        <table>
+          <tr><td>Total</td><td>${formatCurrencyWithConversion(totalPrice, service.currency)}</td></tr>
+          <tr><td>Method</td><td>${bookingData.paymentMethod === 'mobile' ? 'Mobile Money' : bookingData.paymentMethod}</td></tr>
+        </table>
+        <p style="margin-top:18px;font-size:13px;color:#555">Thank you for booking with us.</p>
+        </body></html>`
+
+      const blob = new Blob([receiptHtml], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `receipt-${result.id}.html`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('Failed to generate receipt:', e)
+      alert('Failed to download receipt.')
+    }
+  }
+
+  // Generate and download a PDF receipt using jsPDF
+  const downloadReceiptPDF = (result: any) => {
+    try {
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const left = 40
+      let y = 48
+
+      // Title
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(20)
+      doc.text('Booking Receipt', left, y)
+      y += 26
+
+      // Reference
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(11)
+      doc.text(`Reference: ${result.id || ''}`, left, y)
+      y += 22
+
+      // Service section
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(13)
+      doc.text('Service', left, y)
+      y += 16
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(11)
+      doc.text(`Title: ${service.title}`, left + 10, y)
+      y += 14
+      doc.text(`Provider: ${service.vendors?.business_name || 'N/A'}`, left + 10, y)
+      y += 14
+      doc.text(`Location: ${service.location}`, left + 10, y)
+      y += 20
+
+      // Trip section
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(13)
+      doc.text('Trip', left, y)
+      y += 16
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(11)
+      const pickup = `${bookingData.startDate || ''}${bookingData.startTime ? ' at ' + bookingData.startTime : ''}`.trim()
+      const dropoff = `${bookingData.endDate || ''}${bookingData.endTime ? ' at ' + bookingData.endTime : ''}`.trim()
+      doc.text(`Pick-up: ${pickup}`, left + 10, y)
+      y += 14
+      doc.text(`Drop-off: ${dropoff}`, left + 10, y)
+      y += 14
+      doc.text(`Passengers: ${bookingData.passengers}`, left + 10, y)
+      y += 20
+
+      // Payment section
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(13)
+      doc.text('Payment', left, y)
+      y += 16
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(11)
+      // Right-align totals for clarity
+      const totalLabel = `Total:`
+      const totalValue = `${formatCurrencyWithConversion(totalPrice, service.currency)}`
+      doc.text(totalLabel, left + 10, y)
+      doc.text(totalValue, pageWidth - left, y, { align: 'right' })
+      y += 14
+      const methodLabel = `Method:`
+      const methodValue = bookingData.paymentMethod === 'mobile' ? 'Mobile Money' : bookingData.paymentMethod || 'N/A'
+      doc.text(methodLabel, left + 10, y)
+      doc.text(methodValue, pageWidth - left, y, { align: 'right' })
+      y += 28
+
+      // Footer note
+      doc.setFontSize(11)
+      doc.text('Thank you for booking with us.', left, y)
+
+      doc.save(`receipt-${result.id || 'booking'}.pdf`)
+    } catch (e) {
+      console.error('Failed to generate PDF receipt:', e)
+      alert('Failed to download PDF receipt.')
+    }
   }
 
   const totalPrice = (() => {
@@ -979,6 +1107,36 @@ export default function TransportBooking({ service }: TransportBookingProps) {
               <p className="text-gray-600 text-sm sm:text-base">
                 Your transportation booking has been successfully confirmed. You will receive a confirmation email shortly.
               </p>
+
+              {/* Booking reference & quick actions */}
+              {bookingResult?.id && (
+                <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <div className="bg-gray-100 px-3 py-2 rounded-lg text-sm flex items-center gap-3">
+                    <span className="font-semibold">Reference:</span>
+                    <span className="break-all">{bookingResult.id}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => { try { await navigator.clipboard.writeText(bookingResult.id); alert('Booking reference copied'); } catch { /* ignore */ } }}
+                      className="px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm"
+                    >
+                      Copy reference
+                    </button>
+                    <button
+                      onClick={() => downloadReceiptPDF(bookingResult || {})}
+                      className="px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm"
+                    >
+                      Download receipt (PDF)
+                    </button>
+                    <button
+                      onClick={() => navigate(`/service/${service.slug || service.id}/inquiry`)}
+                      className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm"
+                    >
+                      Message provider
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Service Details */}
@@ -1125,11 +1283,14 @@ export default function TransportBooking({ service }: TransportBookingProps) {
 
             {/* Similar Services Carousel */}
             {service.category_id && (
-              <SimilarServicesCarousel
-                categoryId={service.category_id}
-                excludeServiceId={service.id}
-                limit={8}
-              />
+              <div className="pt-6">
+                <h3 className="text-sm font-semibold mb-3">Other services you may like</h3>
+                <SimilarServicesCarousel
+                  categoryId={service.category_id}
+                  excludeServiceId={service.id}
+                  limit={8}
+                />
+              </div>
             )}
           </div>
         )
@@ -1153,6 +1314,36 @@ export default function TransportBooking({ service }: TransportBookingProps) {
             <p className="text-gray-600 text-sm sm:text-base">
               Your transportation booking has been successfully confirmed. You will receive a confirmation email shortly.
             </p>
+
+            {/* Booking reference & quick actions */}
+            {bookingResult?.id && (
+              <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <div className="bg-gray-100 px-3 py-2 rounded-lg text-sm flex items-center gap-3">
+                  <span className="font-semibold">Reference:</span>
+                  <span className="break-all">{bookingResult.id}</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => { try { await navigator.clipboard.writeText(bookingResult.id); alert('Booking reference copied'); } catch { /* ignore */ } }}
+                    className="px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm"
+                  >
+                    Copy reference
+                  </button>
+                  <button
+                    onClick={() => downloadReceiptPDF(bookingResult || {})}
+                    className="px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm"
+                  >
+                    Download receipt (PDF)
+                  </button>
+                  <button
+                    onClick={() => navigate(`/service/${service.slug || service.id}/inquiry`)}
+                    className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm"
+                  >
+                    Message provider
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Service Details */}
@@ -1297,14 +1488,17 @@ export default function TransportBooking({ service }: TransportBookingProps) {
             </button>
           </div>
 
-          {/* Similar Services Carousel */}
-          {service.category_id && (
-            <SimilarServicesCarousel
-              categoryId={service.category_id}
-              excludeServiceId={service.id}
-              limit={8}
-            />
-          )}
+            {/* Similar Services Carousel */}
+            {service.category_id && (
+              <div className="pt-6">
+                <h3 className="text-sm font-semibold mb-3">Other services you may like</h3>
+                <SimilarServicesCarousel
+                  categoryId={service.category_id}
+                  excludeServiceId={service.id}
+                  limit={8}
+                />
+              </div>
+            )}
         </div>
       </div>
     )

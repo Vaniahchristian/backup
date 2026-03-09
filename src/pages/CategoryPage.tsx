@@ -126,7 +126,8 @@ export default function CategoryPage() {
 
   const categoryFilters = getCategoryFilters()
   const categoryName = categoryNames[category || ''] || 'Services'
-  const accentGradient = categoryAccents[category || ''] || 'from-gray-900 to-gray-700'
+  // Use a single solid green for all headers
+  const accentGradient = 'bg-emerald-700'
 
   useEffect(() => {
     if (allServices) {
@@ -177,9 +178,8 @@ export default function CategoryPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Category header banner */}
-      <div className={`bg-gradient-to-r ${accentGradient} py-10 md:py-14`}>
+      <div className={`${accentGradient} py-10 md:py-14`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-xs font-semibold uppercase tracking-widest text-white/50 mb-2">Uganda</p>
           <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight leading-tight">
             {categoryName}
           </h1>
