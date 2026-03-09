@@ -169,14 +169,19 @@ export default function Wallet() {
       created_at: topUp.created_at
     }))
 
-    const spendActivities = confirmedSpendBookings.map((booking) => ({
-      id: `spend-${booking.id}`,
-      type: 'spend' as const,
-      amount: booking.total_amount,
-      currency: booking.currency,
-      title: booking.services?.[0]?.title || 'Service booking',
-      created_at: booking.created_at
-    }))
+    const spendActivities = confirmedSpendBookings.map((booking) => {
+      const svc = booking.services as any
+      const title = Array.isArray(svc) ? svc[0]?.title : svc?.title
+
+      return {
+        id: `spend-${booking.id}`,
+        type: 'spend' as const,
+        amount: booking.total_amount,
+        currency: booking.currency,
+        title: title || 'Service booking',
+        created_at: booking.created_at
+      }
+    })
 
     return [...topUpActivities, ...spendActivities]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
