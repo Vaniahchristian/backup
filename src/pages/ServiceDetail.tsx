@@ -1576,7 +1576,7 @@ export default function ServiceDetail() {
 
       {/* Mobile Image with Header Overlay */}
       <div className="md:hidden w-screen relative left-[50%] right-[50%] -ml-[50vw] -mr-[50vw]">
-        <div className="relative h-[75vw] min-h-[320px] max-h-[520px] rounded-b-2xl shadow-lg overflow-hidden">
+        <div className="relative h-[95vw] min-h-[400px] max-h-[650px] rounded-b-2xl shadow-lg overflow-hidden">
           {/* Scrollable Image Container */}
           <div 
             ref={scrollContainerRef}
