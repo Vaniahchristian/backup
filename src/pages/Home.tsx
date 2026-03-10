@@ -545,20 +545,22 @@ export default function Home() {
         return aPriority - bPriority
       })
       
-      // Add "All" category at the beginning
+      // Force Lucide icons for all main categories, ignore DB icon if string/emoji
+      const iconMap: Record<string, any> = {
+        cat_hotels: Hotel,
+        cat_transport: Car,
+        cat_activities: Target,
+        cat_tour_packages: Map,
+        cat_restaurants: Utensils,
+        cat_shops: ShoppingBag
+      }
       const allCategories = [
         { id: 'all', name: t('all_listings'), icon: Map },
         ...sortedCategories.map(cat => {
-          // If the category.icon is stored as a string (emoji) in the DB,
-          // convert it to a small React component that renders the emoji safely.
-          const IconComponent = typeof cat.icon === 'string'
-            ? (() => <span className="text-lg leading-none">{cat.icon}</span>)
-            : (cat.icon || MapPinIcon)
-
           return {
             id: cat.id,
             name: cat.id === 'cat_activities' ? 'Events' : cat.id === 'cat_hotels' ? 'Homes & Stays' : cat.name,
-            icon: IconComponent
+            icon: iconMap[cat.id] || MapPinIcon
           }
         })
       ]
