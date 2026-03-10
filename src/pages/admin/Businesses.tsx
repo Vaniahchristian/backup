@@ -440,41 +440,37 @@ export default function Businesses() {
     <div>
       {/* Pending Vendors Alert */}
       {pendingVendorsCount > 0 && (
-        <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <AlertCircle className="h-5 w-5 text-yellow-400" />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-yellow-700">
-                <strong>{pendingVendorsCount} vendor{pendingVendorsCount > 1 ? 's' : ''} awaiting approval.</strong>
-                Click the "Pending" filter below to review and approve/reject vendor applications.
-              </p>
-            </div>
+        <div className="mb-6 bg-yellow-100 border-l-4 border-yellow-500 p-4 rounded-lg shadow-sm">
+          <div className="flex items-center">
+            <AlertCircle className="h-6 w-6 text-yellow-600 mr-3" />
+            <span className="text-base text-yellow-900 font-semibold">
+              {pendingVendorsCount} vendor{pendingVendorsCount > 1 ? 's' : ''} awaiting approval.
+            </span>
+            <span className="ml-2 text-sm text-yellow-800">Click the <b>Pending</b> filter below to review and approve/reject vendor applications.</span>
           </div>
         </div>
       )}
 
       <div className="mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Businesses</h1>
-            <p className="mt-1 text-sm text-gray-600">
-              Manage businesses from the database - review profiles, verify vendors, and track registrations
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Businesses</h1>
+            <p className="mt-1 text-base text-gray-600 font-medium">
+              Manage businesses from the database – review profiles, verify vendors, and track registrations
             </p>
           </div>
           <button
             onClick={fetchUsers}
             disabled={loading}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-5 w-5 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
         </div>
       </div>
 
-      {/* Users Table */}
+      {/* Filter Bar */}
       <div className="mb-6">
         <SearchBar
           onSearch={setSearchTerm}
@@ -482,53 +478,53 @@ export default function Businesses() {
           placeholder="Search businesses by name, email, or business name..."
           className="mb-4"
         />
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap gap-2 bg-white p-2 rounded-lg border border-gray-200 mb-2">
           <button
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm ${
+            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
               filter === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-blue-700 text-white shadow'
+                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
             }`}
           >
             All Businesses ({users.length})
           </button>
           <button
             onClick={() => setFilter('pending')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm ${
+            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
               filter === 'pending'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-yellow-500 text-white shadow'
+                : 'bg-white text-yellow-900 hover:bg-yellow-100 border border-yellow-300'
             }`}
           >
             Pending ({users.filter(u => u.profile.status === 'pending').length})
           </button>
           <button
             onClick={() => setFilter('verified')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm ${
+            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
               filter === 'verified'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-green-700 text-white shadow'
+                : 'bg-white text-green-900 hover:bg-green-100 border border-green-300'
             }`}
           >
             Verified ({users.filter(u => u.isVerified).length})
           </button>
           <button
             onClick={() => setFilter('rejected')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm ${
+            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
               filter === 'rejected'
-                ? 'bg-red-600 text-white'
-                : 'bg-red-100 text-red-700 hover:bg-red-200'
+                ? 'bg-red-700 text-white shadow'
+                : 'bg-white text-red-900 hover:bg-red-100 border border-red-300'
             }`}
           >
             Rejected ({users.filter(u => u.profile.status === 'rejected').length})
           </button>
           <button
             onClick={() => setFilter('suspended')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm ${
+            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
               filter === 'suspended'
-                ? 'bg-orange-600 text-white'
-                : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                ? 'bg-orange-700 text-white shadow'
+                : 'bg-white text-orange-900 hover:bg-orange-100 border border-orange-300'
             }`}
           >
             Suspended ({users.filter(u => u.vendor?.status === 'suspended' || u.profile.status === 'suspended').length})
@@ -537,154 +533,143 @@ export default function Businesses() {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-        <ul className="divide-y divide-gray-200">
+      <div className="bg-white shadow rounded-2xl border border-gray-100 overflow-hidden">
+        <ul className="divide-y divide-gray-100">
           {filteredUsers.map((user) => (
-            <li key={user.profile.id} className={`${user.profile.status === 'pending' ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}>
-              <div className="px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10">
-                      <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                        {user.profile.role === 'vendor' ? (
-                          <Store className="h-5 w-5 text-blue-600" />
-                        ) : (
-                          <User className="h-5 w-5 text-blue-600" />
-                        )}
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {user.profile.full_name || 'Unnamed User'}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {user.profile.email}
-                      </div>
-                      {user.vendor && (
-                        <div className="text-sm text-gray-500">
-                          {user.vendor.business_name}
-                        </div>
+            <li key={user.profile.id} className={`group transition-all duration-150 ${user.profile.status === 'pending' ? 'bg-yellow-100 border-l-4 border-yellow-500' : ''} hover:bg-blue-50/30`}> 
+              <div className="px-4 py-5 sm:px-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="flex-shrink-0 h-12 w-12">
+                    <div className="h-12 w-12 rounded-lg bg-blue-50 flex items-center justify-center">
+                      {user.profile.role === 'vendor' ? (
+                        <Store className="h-6 w-6 text-blue-600" />
+                      ) : (
+                        <User className="h-6 w-6 text-blue-600" />
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <div className="text-sm text-gray-900 capitalize">
-                        {user.profile.role}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {formatDate(user.profile.created_at)}
-                      </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-base font-semibold text-gray-900 truncate max-w-[180px]">{user.profile.full_name || 'Unnamed User'}</span>
+                      {user.vendor && (
+                        <span className="text-sm text-gray-500 truncate max-w-[140px]">{user.vendor.business_name}</span>
+                      )}
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                      <span className="text-sm text-gray-500 truncate max-w-[180px]">{user.profile.email}</span>
+                      <span className="text-xs text-gray-400">{formatDate(user.profile.created_at)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
                       {user.profile.role === 'vendor' && (
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          user.profile.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-300 animate-pulse'
-                            : user.profile.status === 'approved'
-                            ? 'bg-green-100 text-green-800'
-                            : user.profile.status === 'rejected'
-                            ? 'bg-red-100 text-red-800'
-                            : user.profile.status === 'suspended'
-                            ? 'bg-orange-100 text-orange-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {user.profile.status === 'pending' ? '⏳ PENDING APPROVAL' : (user.profile.status || 'Unknown').toUpperCase()}
-                        </span>
+                        <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full border ${
+                              user.profile.status === 'pending'
+                                ? 'bg-yellow-500 text-white border-yellow-700 animate-pulse shadow'
+                                : user.profile.status === 'approved'
+                                ? 'bg-green-700 text-white border-green-900'
+                                : user.profile.status === 'rejected'
+                                ? 'bg-red-700 text-white border-red-900'
+                                : user.profile.status === 'suspended'
+                                ? 'bg-orange-700 text-white border-orange-900'
+                                : 'bg-gray-400 text-white border-gray-600'
+                            }`}>
+                              {user.profile.status === 'pending' ? '⏳ Pending approval' : (user.profile.status || 'Unknown').charAt(0).toUpperCase() + (user.profile.status || 'Unknown').slice(1)}
+                            </span>
                       )}
                       {user.profile.role === 'tourist' && (
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.profile.status === 'suspended' ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'}`}>
+                        <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full border ${user.profile.status === 'suspended' ? 'bg-orange-100 text-orange-800 border-orange-300' : 'bg-green-100 text-green-800 border-green-300'}`}>
                           {user.profile.status === 'suspended' ? 'Suspended' : 'Active'}
                         </span>
                       )}
-                      <button
-                        onClick={() => setSelectedUser(user)}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="Review Details"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      {user.profile.status === 'pending' && user.profile.role === 'vendor' && (
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => showConfirmation('approve', {type: 'vendor', id: user.profile.id, name: user.vendor?.business_name || user.profile.full_name || 'Vendor'}, () => updateVendorStatus(user.vendor?.id || user.profile.id, 'approved'))}
-                            className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-lg bg-green-100 text-green-800 hover:bg-green-200 transition-colors duration-200"
-                            title="Approve Vendor"
-                          >
-                            <Check className="h-4 w-4 mr-1" />
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => showConfirmation('reject', {type: 'vendor', id: user.profile.id, name: user.vendor?.business_name || user.profile.full_name || 'Vendor'}, () => updateVendorStatus(user.vendor?.id || user.profile.id, 'rejected'))}
-                            className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-lg bg-red-100 text-red-800 hover:bg-red-200 transition-colors duration-200"
-                            title="Reject Vendor"
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Reject
-                          </button>
-                        </div>
-                      )}
-                      {/* Suspend/Resume button - changes based on current status */}
-                      {user.profile.role === 'vendor' && user.profile.status !== 'pending' && user.profile.status !== 'rejected' && (
-                        <button
-                          onClick={() => user.profile.status === 'suspended' ?
-                            updateVendorStatus(user.profile.id, 'approved') :
-                            openSuspendModal('vendor', user.profile.id, user.profile.full_name || 'Vendor')
-                          }
-                          className={user.profile.status === 'suspended' ? "text-green-600 hover:text-green-900" : "text-orange-600 hover:text-orange-900"}
-                          title={user.profile.status === 'suspended' ? "Resume Vendor" : "Suspend Vendor"}
-                        >
-                          {user.profile.status === 'suspended' ? (
-                            <Check className="h-4 w-4" />
-                          ) : (
-                            <Ban className="h-4 w-4" />
-                          )}
-                        </button>
-                      )}
-                      {/* Suspend/Resume button for tourists */}
-                      {user.profile.role === 'tourist' && (
-                        <button
-                          onClick={() => user.profile.status === 'suspended' ?
-                            updateUserStatus(user.profile.id, 'active') :
-                            openSuspendModal('user', user.profile.id, user.profile.full_name || 'User')
-                          }
-                          className={user.profile.status === 'suspended' ? "text-green-600 hover:text-green-900" : "text-orange-600 hover:text-orange-900"}
-                          title={user.profile.status === 'suspended' ? "Resume User" : "Suspend User"}
-                        >
-                          {user.profile.status === 'suspended' ? (
-                            <Check className="h-4 w-4" />
-                          ) : (
-                            <Ban className="h-4 w-4" />
-                          )}
-                        </button>
-                      )}
-                      {/* Suspend/Resume button for admins and other roles */}
-                      {user.profile.role !== 'vendor' && user.profile.role !== 'tourist' && user.profile.status !== 'pending' && (
-                        <button
-                          onClick={() => user.profile.status === 'suspended' ?
-                            updateUserStatus(user.profile.id, 'active') :
-                            openSuspendModal('user', user.profile.id, user.profile.full_name || 'User')
-                          }
-                          className={user.profile.status === 'suspended' ? "text-green-600 hover:text-green-900" : "text-orange-600 hover:text-orange-900"}
-                          title={user.profile.status === 'suspended' ? "Resume User" : "Suspend User"}
-                        >
-                          {user.profile.status === 'suspended' ? (
-                            <Check className="h-4 w-4" />
-                          ) : (
-                            <Ban className="h-4 w-4" />
-                          )}
-                        </button>
-                      )}
-                      {/* Delete button */}
-                      <button
-                        onClick={() => showConfirmation('delete', {type: 'user', id: user.profile.id, name: user.profile.full_name || (user.profile.role === 'vendor' ? 'Vendor' : 'User')}, () => deleteUserAccount(user.profile.id, user.profile.full_name || (user.profile.role === 'vendor' ? 'Vendor' : 'User')))}
-                        className="text-red-600 hover:text-red-900"
-                        title="Delete User"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
                     </div>
                   </div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => setSelectedUser(user)}
+                    className="text-blue-600 hover:text-blue-900 p-2 rounded-full bg-blue-50 hover:bg-blue-100 transition"
+                    title="Review Details"
+                  >
+                    <Eye className="h-5 w-5" />
+                  </button>
+                  {user.profile.status === 'pending' && user.profile.role === 'vendor' && (
+                    <>
+                      <button
+                        onClick={() => showConfirmation('approve', {type: 'vendor', id: user.profile.id, name: user.vendor?.business_name || user.profile.full_name || 'Vendor'}, () => updateVendorStatus(user.vendor?.id || user.profile.id, 'approved'))}
+                        className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors duration-200 shadow"
+                        title="Approve Vendor"
+                      >
+                        <Check className="h-4 w-4 mr-1" />
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => showConfirmation('reject', {type: 'vendor', id: user.profile.id, name: user.vendor?.business_name || user.profile.full_name || 'Vendor'}, () => updateVendorStatus(user.vendor?.id || user.profile.id, 'rejected'))}
+                        className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors duration-200 shadow"
+                        title="Reject Vendor"
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Reject
+                      </button>
+                    </>
+                  )}
+                  {/* Suspend/Resume button - changes based on current status */}
+                  {user.profile.role === 'vendor' && user.profile.status !== 'pending' && user.profile.status !== 'rejected' && (
+                    <button
+                      onClick={() => user.profile.status === 'suspended' ?
+                        updateVendorStatus(user.profile.id, 'approved') :
+                        openSuspendModal('vendor', user.profile.id, user.profile.full_name || 'Vendor')
+                      }
+                      className={user.profile.status === 'suspended' ? "text-green-600 hover:text-green-900 p-2 rounded-full bg-green-50 hover:bg-green-100" : "text-orange-600 hover:text-orange-900 p-2 rounded-full bg-orange-50 hover:bg-orange-100"}
+                      title={user.profile.status === 'suspended' ? "Resume Vendor" : "Suspend Vendor"}
+                    >
+                      {user.profile.status === 'suspended' ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Ban className="h-4 w-4" />
+                      )}
+                    </button>
+                  )}
+                  {/* Suspend/Resume button for tourists */}
+                  {user.profile.role === 'tourist' && (
+                    <button
+                      onClick={() => user.profile.status === 'suspended' ?
+                        updateUserStatus(user.profile.id, 'active') :
+                        openSuspendModal('user', user.profile.id, user.profile.full_name || 'User')
+                      }
+                      className={user.profile.status === 'suspended' ? "text-green-600 hover:text-green-900 p-2 rounded-full bg-green-50 hover:bg-green-100" : "text-orange-600 hover:text-orange-900 p-2 rounded-full bg-orange-50 hover:bg-orange-100"}
+                      title={user.profile.status === 'suspended' ? "Resume User" : "Suspend User"}
+                    >
+                      {user.profile.status === 'suspended' ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Ban className="h-4 w-4" />
+                      )}
+                    </button>
+                  )}
+                  {/* Suspend/Resume button for admins and other roles */}
+                  {user.profile.role !== 'vendor' && user.profile.role !== 'tourist' && user.profile.status !== 'pending' && (
+                    <button
+                      onClick={() => user.profile.status === 'suspended' ?
+                        updateUserStatus(user.profile.id, 'active') :
+                        openSuspendModal('user', user.profile.id, user.profile.full_name || 'User')
+                      }
+                      className={user.profile.status === 'suspended' ? "text-green-600 hover:text-green-900 p-2 rounded-full bg-green-50 hover:bg-green-100" : "text-orange-600 hover:text-orange-900 p-2 rounded-full bg-orange-50 hover:bg-orange-100"}
+                      title={user.profile.status === 'suspended' ? "Resume User" : "Suspend User"}
+                    >
+                      {user.profile.status === 'suspended' ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Ban className="h-4 w-4" />
+                      )}
+                    </button>
+                  )}
+                  {/* Delete button */}
+                  <button
+                    onClick={() => showConfirmation('delete', {type: 'user', id: user.profile.id, name: user.profile.full_name || (user.profile.role === 'vendor' ? 'Vendor' : 'User')}, () => deleteUserAccount(user.profile.id, user.profile.full_name || (user.profile.role === 'vendor' ? 'Vendor' : 'User')))}
+                    className="text-red-600 hover:text-red-900 p-2 rounded-full bg-red-50 hover:bg-red-100 transition"
+                    title="Delete User"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             </li>
