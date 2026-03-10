@@ -1576,11 +1576,11 @@ export default function ServiceDetail() {
 
       {/* Mobile Image with Header Overlay */}
       <div className="md:hidden w-screen relative left-[50%] right-[50%] -ml-[50vw] -mr-[50vw]">
-        <div className="relative h-[60vh]">
+        <div className="relative h-[75vw] min-h-[320px] max-h-[520px] rounded-b-2xl shadow-lg overflow-hidden">
           {/* Scrollable Image Container */}
           <div 
             ref={scrollContainerRef}
-            className="w-full h-full overflow-x-auto snap-x snap-mandatory scroll-smooth" 
+            className="w-full h-full overflow-x-auto snap-x snap-mandatory scroll-smooth bg-gray-200" 
             style={{ scrollBehavior: 'smooth' }}
           >
             <div className="flex w-full h-full">
@@ -1592,7 +1592,8 @@ export default function ServiceDetail() {
                       decoding="async"
                       src={image}
                       alt={`${service.title} ${index + 1}`}
-                      className="w-full h-full object-cover cursor-pointer"
+                      className="w-full h-full object-cover cursor-pointer rounded-b-2xl"
+                      style={{ minHeight: 260, maxHeight: 420, objectPosition: 'center' }}
                       onClick={() => { setLightboxIndex(index); setLightboxOpen(true) }}
                     />
                   </div>
@@ -1604,83 +1605,82 @@ export default function ServiceDetail() {
                     decoding="async"
                     src="https://images.pexels.com/photos/1320684/pexels-photo-1320684.jpeg"
                     alt={service.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-b-2xl"
+                    style={{ minHeight: 260, maxHeight: 420, objectPosition: 'center' }}
                   />
                 </div>
               )}
             </div>
           </div>
-          
           {/* Mobile Header Overlay */}
-          <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10">
-            <Link to="/" aria-label="Back" className="w-9 h-9 flex items-center justify-center text-gray-900 bg-white bg-opacity-95 hover:bg-opacity-100 rounded-full shadow-sm transition-all">
+          <div className="absolute top-0 left-0 right-0 p-3 flex items-center justify-between z-10">
+            <Link to="/" aria-label="Back" className="w-9 h-9 flex items-center justify-center text-gray-900 bg-white bg-opacity-95 hover:bg-opacity-100 rounded-full shadow-md transition-all">
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div className="flex items-center space-x-2">
-              <button className="w-9 h-9 flex items-center justify-center text-gray-900 bg-white bg-opacity-95 hover:bg-opacity-100 rounded-full shadow-sm transition-all">
+              <button className="w-9 h-9 flex items-center justify-center text-gray-900 bg-white bg-opacity-95 hover:bg-opacity-100 rounded-full shadow-md transition-all">
                 <Heart className="h-5 w-5" />
               </button>
-              <button className="w-9 h-9 flex items-center justify-center text-gray-900 bg-white bg-opacity-95 hover:bg-opacity-100 rounded-full shadow-sm transition-all">
+              <button className="w-9 h-9 flex items-center justify-center text-gray-900 bg-white bg-opacity-95 hover:bg-opacity-100 rounded-full shadow-md transition-all">
                 <Share2 className="h-5 w-5" />
               </button>
               <button 
                 onClick={handleSaveToCart}
-                className="w-9 h-9 flex items-center justify-center text-gray-900 bg-white bg-opacity-95 hover:bg-opacity-100 rounded-full shadow-sm transition-all"
+                className="w-9 h-9 flex items-center justify-center text-gray-900 bg-white bg-opacity-95 hover:bg-opacity-100 rounded-full shadow-md transition-all"
               >
                 <ShoppingCart className="h-5 w-5" />
               </button>
             </div>
           </div>
-
           {/* Image Counter */}
           {service.images && service.images.length > 0 && (
-            <div className="absolute bottom-4 right-4 bg-white text-gray-900 px-3 py-1 rounded-full text-sm z-10 border border-gray-200 shadow-sm">
+            <div className="absolute bottom-4 right-4 bg-white text-gray-900 px-3 py-1 rounded-full text-xs z-10 border border-gray-200 shadow-md">
               {currentImageIndex + 1} / {service.images.length}
             </div>
           )}
-
           {/* Event hero overlay for Activities/Events - compact & mobile-optimized card */}
           {(service.service_categories?.name?.toLowerCase() === 'activities' || service.service_categories?.name?.toLowerCase() === 'events') && (
-            <div className="absolute left-3 right-3 bottom-5 z-20">
-              <div className="w-full bg-gradient-to-r from-black/80 via-black/50 to-transparent text-white px-3 py-3 rounded-lg shadow-lg">
-                <div className="flex items-start justify-between gap-2">
+            <div className="absolute left-2 right-2 bottom-2 z-20">
+              <div className="w-full bg-gradient-to-r from-black/90 via-black/60 to-transparent text-white px-2 py-2 rounded-lg shadow-lg border border-white/10 backdrop-blur-sm">
+                <div className="flex items-start justify-between gap-1">
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] uppercase tracking-wide text-gray-200 font-semibold mb-0">{service.service_categories?.name || 'Event'}</div>
-                    <h2 className="text-base font-semibold leading-tight truncate">{service.title}</h2>
-                    <div className="mt-1 flex items-center text-xs text-gray-200 space-x-2">
+                    <div className="text-[9px] uppercase tracking-wide text-gray-200 font-semibold mb-0">{service.service_categories?.name || 'Event'}</div>
+                    <h2 className="text-xs font-semibold leading-tight truncate">{service.title}</h2>
+                    <div className="mt-0.5 flex items-center text-[10px] text-gray-200 space-x-1">
                       {service.duration_hours && (
                         <div className="flex items-center truncate">
-                          <Clock className="h-3.5 w-3.5 mr-1.5" />
+                          <Clock className="h-3 w-3 mr-1" />
                           <span>{service.duration_hours}h</span>
                         </div>
                       )}
                       {(service.location || service.event_location) && (
                         <div className="flex items-center truncate">
-                          <MapPin className="h-3.5 w-3.5 mr-1.5" />
+                          <MapPin className="h-3 w-3 mr-1" />
                           <span className="truncate">{service.event_location || service.location}</span>
                         </div>
                       )}
                     </div>
                   </div>
-
-                    <div className="flex-shrink-0 text-right pl-2">
-                      <div className="text-[10px] text-gray-300">From</div>
-                      <div className="text-lg font-semibold inline-flex items-baseline">
-                        {formatCurrencyWithConversion(getDisplayPrice(service, ticketTypes), service.currency)}
-                        <span className="text-sm font-normal text-gray-200 ml-2 whitespace-nowrap align-middle">{getUnitLabel(service.service_categories?.name || '')}</span>
-                      </div>
-                      {/* Mobile-only Buy Tickets CTA (keeps purchase action accessible on mobile hero for events/activities) */}
-                      <button
-                        onClick={() => {
-                          const el = document.querySelector('[data-tickets-section]')
-                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                        }}
-                        aria-label="Buy Tickets"
-                        className="mt-2 w-28 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-md shadow-sm transition-colors md:hidden"
-                      >
-                        Buy Tickets
-                      </button>
+                  <div className="flex-shrink-0 text-right pl-1 flex flex-col items-end">
+                    <div className="text-[9px] text-gray-300">From</div>
+                    <div className="text-base font-semibold">
+                      {formatCurrencyWithConversion(getDisplayPrice(service, ticketTypes), service.currency)}
                     </div>
+                    <div className="text-[9px] font-normal text-gray-200 whitespace-nowrap align-middle -mt-0.5">
+                      {getUnitLabel(service.service_categories?.name || '')}
+                    </div>
+                    {/* Mobile-only Buy Tickets CTA (smaller button) */}
+                    <button
+                      onClick={() => {
+                        const el = document.querySelector('[data-tickets-section]')
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }}
+                      aria-label="Buy Tickets"
+                      className="mt-1 w-20 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-1 rounded shadow-md transition-colors md:hidden sticky bottom-0"
+                    >
+                      Buy Tickets
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
